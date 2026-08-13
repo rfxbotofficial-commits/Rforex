@@ -8,15 +8,15 @@ R Fx Bot - Backend
    RSI, MACD, ADX, ATR, Bollinger Bands, Stochastic Oscillator,
    SuperTrend, Volume.
 
-   STRICT RULE: a BUY/SELL signal is only produced when at least 10 of the
-   11 confirmations agree on the same direction (10 or 11 out of 11).
-   9 or fewer agreeing (including ties) is always WAIT FOR BETTER SETUP.
+   STRICT RULE: a BUY/SELL signal is only produced when at least 9 of the
+   11 confirmations agree on the same direction (9, 10, or 11 out of 11).
+   8 or fewer agreeing (including ties) is always WAIT FOR BETTER SETUP.
    No random numbers, no fake confidence, no repainting, no future candle
    data ever used.
 
    PAIR MODE: "Single Pair Mode" analyzes only the selected pair.
    "Auto Scanning Mode" scans all 13 supported pairs and returns a real
-   signal only if at least one pair actually reaches the 10/11 threshold;
+   signal only if at least one pair actually reaches the 9/11 threshold;
    if none do, the result is WAIT FOR BETTER SETUP (never a forced guess).
 
 2) ACCOUNT SYSTEM
@@ -57,6 +57,13 @@ TWELVEDATA_API_KEYS = [
     "c47e6aa1e3694d888ba0d8ee10193160",
     "5f98e9f032684d27b8b266656bfcadac",
     "a592dba7321442efa229bee2b8a1cff8",
+    "a7def2b8959d4c17a943e21ea1921ac0",
+    "67b60333dd7c44dea9d268c66d0ec17a",
+    "0ab3ed6674e1436e8c396c15203479ad",
+    "411348a610f54662990df7fdd2ebf604",
+    "87b1d6c795144bf481ec5a02d769b60d",
+    "7b1cb45d88574c92a867cc95b8a2fba3",
+    "56df4a80e020400db5259ec9485b2565",
 ]
 TWELVEDATA_BASE_URL = "https://api.twelvedata.com/time_series"
 
@@ -72,7 +79,7 @@ HIGHER_TIMEFRAME_MAP = {"1min": "15min", "5min": "1h", "15min": "4h", "30min": "
 TIMEFRAME_MINUTES = {"1min": 1, "5min": 5, "15min": 15, "30min": 30, "1h": 60, "4h": 240, "1day": 1440}
 
 TOTAL_CONFIRMATIONS = 11
-SIGNAL_VOTE_THRESHOLD = 10  # out of 11 - 9 or fewer is always WAIT
+SIGNAL_VOTE_THRESHOLD = 9  # out of 11 - 8 or fewer is always WAIT
 
 SECRET_KEY = os.environ.get("SECRET_KEY", "change-this-secret-key-in-railway")
 USER_TOKEN_MAX_AGE_SECONDS = 60 * 60 * 24 * 7  # 7 days
@@ -228,7 +235,7 @@ class ApiKeyManager:
 
     def mark_current_exhausted(self, key):
         with self._lock:
-            self._exhausted_until[key] = datetime.now(timezone.utc) + timedelta(hours=24)
+            self._exhausted_until[key] = datetime.now(timezone.utc) + timedelta(minutes=2)
             self._active_index = (self._keys.index(key) + 1) % len(self._keys)
             logger.warning("API key ending in %s marked exhausted, rotating.", key[-4:])
 
@@ -628,8 +635,8 @@ def build_signal(confirmations):
     """
     STRICT equal-weight rule: every one of the 11 confirmations counts the
     same, none is mandatory. A BUY or SELL is only produced when at least
-    SIGNAL_VOTE_THRESHOLD (10) of the 11 agree on the same direction.
-    9 or fewer (including ties) always resolves to WAIT FOR BETTER SETUP.
+    SIGNAL_VOTE_THRESHOLD (9) of the 11 agree on the same direction.
+    8 or fewer (including ties) always resolves to WAIT FOR BETTER SETUP.
     """
     buy_votes = sum(1 for v in confirmations.values() if v == "BUY")
     sell_votes = sum(1 for v in confirmations.values() if v == "SELL")
@@ -864,4 +871,3 @@ if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     logger.info("Starting R Fx Bot backend on 0.0.0.0:%s", port)
     app.run(host="0.0.0.0", port=port, debug=False)
-
